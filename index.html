@@ -13,20 +13,14 @@
         .formula { font-family: monospace; font-size: 20px; text-align: center; margin: 15px 0; background: #fff; padding: 10px; border: 1px dashed #ccc; }
         input[type="text"] { padding: 8px; width: 120px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; }
         button { padding: 8px 15px; background: #2980b9; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        .btn-next { background: #27ae60; margin-left: 10px; display: none; }
         
-        /* 🎮 本格ゲームセンター画面 */
-        #game-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0a0c; color: #fff; z-index: 99999; overflow-y: auto; padding: 20px; box-sizing: border-box; }
-        .menu-title { font-size: 24px; color: #00ffcc; text-align: center; font-weight: bold; margin-bottom: 20px; text-shadow: 0 0 10px rgba(0,255,204,0.5); }
-        .game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 15px; max-width: 600px; margin: 0 auto; }
-        .game-card { background: #16161a; border: 2px solid #2d2d34; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: 0.2s; }
-        .game-card:hover { border-color: #00ffcc; background: #22222b; transform: translateY(-3px); }
-        
-        /* ゲームステージ */
-        .stage-view { display: none; max-width: 480px; margin: 0 auto; background: #000; padding: 10px; border-radius: 12px; border: 2px solid #00ffcc; text-align: center; }
-        .back-btn { background: #ff3b30; color: white; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; margin-bottom: 10px; font-weight: bold; }
-        canvas { background: #111; display: block; margin: 0 auto; max-width: 100%; border-radius: 6px; }
-        .footer-bar { height: 40px; background: #111; color: #888; font-size: 12px; line-height: 40px; position: fixed; bottom: 0; left: 0; width: 100%; text-align: center; border-top: 1px solid #222; }
+        /* 🎮 隠しゲームステージ */
+        #game-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 99999; text-align: center; color: white; padding-top: 10px; box-sizing: border-box; }
+        .stage-header { max-width: 520px; margin: 0 auto 10px auto; display: flex; justify-content: space-between; align-items: center; }
+        .back-btn { background: #ff3b30; color: white; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        canvas { background: #5c94fc; display: block; margin: 0 auto; border: 3px solid #fff; border-radius: 8px; box-shadow: 0 0 20px rgba(255,255,255,0.2); }
+        .ui-info { font-size: 16px; color: #fff; font-weight: bold; font-family: monospace; letter-spacing: 1px; }
+        .footer-bar { height: 35px; background: #111; color: #666; font-size: 11px; line-height: 35px; position: fixed; bottom: 0; left: 0; width: 100%; text-align: center; border-top: 1px solid #222; }
     </style>
 </head>
 <body>
@@ -35,174 +29,313 @@
         <h1>【数学Ⅱ】1学期課程：計算力集中強化ドリル</h1>
         <div class="alert-box"><strong>学校支援モード：</strong> 生成された問題を解き、半角数字で解答してください。</div>
         <div class="question-box">
-            <div id="q-title" style="font-weight:bold; margin-bottom:10px;">問題：文字「a」の係数を答えなさい。</div>
-            <div class="formula" id="q-formula">5a + 3b + 2a - b</div>
-            解答：<input type="text" id="user-answer"> <button onclick="checkAnswer()" id="btn-submit">採点</button>
-            <button onclick="generateQuestion()" id="btn-next" class="btn-next">次へ</button>
+            <div style="font-weight:bold; margin-bottom:10px;">問題：文字「a」の係数を答えなさい。</div>
+            <div class="formula" id="q-formula">3a + 5b + 6a - 2b</div>
+            解答：<input type="text" id="user-answer"> <button onclick="checkAnswer()">採点</button>
             <div id="result" style="margin-top:15px; font-weight:bold;"></div>
         </div>
     </div>
 
     <div id="game-overlay">
-        <div id="menu-view">
-            <div class="menu-title">⚡ OPEN-SOURCE ENGINE REPOSITORIES</div>
-            <div class="game-grid">
-                <div class="game-card" onclick="startRace()">
-                    <span style="font-size:30px;">🏎️</span><br><strong>3Dハイパーレーサー</strong><br><span style="font-size:11px;color:#00ffcc;">ENG: FAKE-3D</span>
-                </div>
-                <div class="game-card" onclick="startPlatformer()">
-                    <span style="font-size:30px;">🏃</span><br><strong>2Dマリオ風アクション</strong><br><span style="font-size:11px;color:#00ffcc;">ENG: PLATFORM</span>
-                </div>
-            </div>
+        <div class="stage-header">
+            <button class="back-btn" onclick="quitGame()">⬅ ドリルに戻る</button>
+            <div class="ui-info">SCORE: <span id="score-disp">0000</span> | COIN: <span id="coin-disp">00</span></div>
         </div>
-
-        <div id="race-stage" class="stage-view">
-            <button class="back-btn" onclick="quitGame()">⬅ メニュー</button>
-            <canvas id="raceCanvas" width="440" height="280"></canvas>
-            <p style="font-size:11px; color:#aaa; margin:5px 0 0 0;">操作: 【←】【→】ハンドル / 【↑】アクセル / 【↓】ブレーキ</p>
-        </div>
-
-        <div id="action-stage" class="stage-view">
-            <button class="back-btn" onclick="quitGame()">⬅ メニュー</button>
-            <canvas id="actCanvas" width="440" height="280"></canvas>
-            <p style="font-size:11px; color:#aaa; margin:5px 0 0 0;">操作: 【←】【→】移動 / 【スペースキー】ジャンプ</p>
-        </div>
-
+        <canvas id="gameCanvas" width="512" height="320"></canvas>
+        <p style="font-size:12px; color:#aaa; margin-top:8px;">操作: 【←】【→】移動 / 【スペースキー】ジャンプ (敵は踏んで倒せるぞ！)</p>
         <div class="footer-bar">緊急回避：【Escキー】で即座にNHK高校講座へ切り替えます</div>
     </div>
 
     <script>
         // 数学ドリルシステム
-        let currentAns = "7";
-        function generateQuestion() {
-            document.getElementById('user-answer').value = ''; document.getElementById('result').innerText = '';
-            document.getElementById('btn-next').style.display = 'none'; document.getElementById('btn-submit').style.display = 'inline-block';
-            const n1 = Math.floor(Math.random()*6)+2; const n2 = Math.floor(Math.random()*5)+2;
-            document.getElementById('q-formula').innerText = `${n1}a + 4b + ${n2}a - b`; currentAns = String(n1+n2);
-        }
+        let currentAns = "9";
         function checkAnswer() {
             if(document.getElementById('user-answer').value.trim() === currentAns) {
                 document.getElementById('result').innerHTML = '<span style="color:#27ae60;">◯ 正解</span>';
-                document.getElementById('btn-submit').style.display = 'none'; document.getElementById('btn-next').style.display = 'inline-block';
             } else { document.getElementById('result').innerHTML = '<span style="color:#c0392b;">× 不正解</span>'; }
         }
 
-        // 🛠️ コマンド（open）と緊急退避（Esc）
-        let log = '';
+        // 隠しコマンドと緊急避難
+        let log = ''; let isGaming = false;
         window.addEventListener('keydown', (e) => {
             if(e.key === 'Escape') { window.location.href = 'https://www.nhk.or.jp/kokokoza/'; return; }
             log += e.key.toLowerCase(); if(log.length > 4) log = log.substring(log.length - 4);
-            if(log === 'open') {
+            if(log === 'open' && !isGaming) {
                 document.getElementById('study-page').style.display = 'none';
                 document.getElementById('game-overlay').style.display = 'block';
+                isGaming = true;
+                startGame();
             }
         });
 
-        let animId = null;
         function quitGame() {
-            if(animId) cancelAnimationFrame(animId);
-            document.getElementById('race-stage').style.display = 'none';
-            document.getElementById('action-stage').style.display = 'none';
-            document.getElementById('menu-view').style.display = 'block';
-            document.onkeydown = null; document.onkeyup = null;
+            isGaming = false; if(animId) cancelAnimationFrame(animId);
+            document.getElementById('game-overlay').style.display = 'none';
+            document.getElementById('study-page').style.display = 'block';
         }
 
         // ==========================================
-        // 🏎️ ゲーム1: 3Dレーシングゲームエンジン
+        // 🎮 ガチ2Dスクロールアクションゲームエンジン
         // ==========================================
-        function startRace() {
-            document.getElementById('menu-view').style.display = 'none';
-            document.getElementById('race-stage').style.display = 'block';
-            const canvas = document.getElementById("raceCanvas"); const ctx = canvas.getContext("2d");
-            let keys = {}; document.onkeydown = (e) => keys[e.key] = true; document.onkeyup = (e) => keys[e.key] = false;
-            
-            let playerX = 0, speed = 0, maxSpeed = 100, position = 0, trackLength = 5000;
-            let lines = []; for(let i=0; i<500; i++) { lines.push({x: Math.sin(i/10)*2, y: i, curve: Math.sin(i/12)*1.5}); }
+        let animId = null;
+        function startGame() {
+            const canvas = document.getElementById("gameCanvas");
+            const ctx = canvas.getContext("2d");
+            ctx.imageSmoothingEnabled = false; // ドット絵をくっきり見せる
 
-            function renderRace() {
-                if(keys["ArrowUp"]) speed = Math.min(speed+1.5, maxSpeed); else speed = Math.max(speed-1, 0);
-                if(keys["ArrowDown"]) speed = Math.max(speed-2, 0);
-                if(keys["ArrowLeft"] && speed>0) playerX -= 0.04; if(keys["ArrowRight"] && speed>0) playerX += 0.04;
-                position += speed; if(position >= trackLength*10) position = 0;
+            let keys = {};
+            document.onkeydown = (e) => { keys[e.key] = true; if(e.key === " ") e.preventDefault(); };
+            document.onkeyup = (e) => keys[e.key] = false;
 
-                ctx.fillStyle = "#729954"; ctx.fillRect(0,0,canvas.width,canvas.height); // 背景（草）
-                let startPos = Math.floor(position/10) % 500;
-                let camH = 1500; let maxy = canvas.height;
+            // ゲーム変数
+            let score = 0; let coins = 0;
+            let player = { x: 50, y: 200, vx: 0, vy: 0, width: 24, height: 32, onGround: false, animFrame: 0, facing: 1 };
+            let cameraX = 0;
 
-                for(let i=0; i<60; i++) {
-                    let line = lines[(startPos + i) % 500];
-                    let p_z = i * 10 - (position % 10); if(p_z <= 0) p_z = 1;
-                    let scale = 160 / p_z;
-                    let x = canvas.width/2 + (line.x - playerX) * canvas.width/2 * scale;
-                    let y = canvas.height/2 + (camH) * scale;
-                    let w = 2400 * scale;
+            // マップデータ (1=地面, 2=レンガ, 3=ハテナブロック, 4=コイン, 5=トゲ)
+            // 1マス = 32x32ピクセル
+            const TILE_SIZE = 32;
+            const mapData = [
+                "................................................................",
+                "................................................................",
+                "................................................................",
+                "...................4.4..........................................",
+                ".................3.2.2.3...............2.2.2....................",
+                "..............................................................3.",
+                "....4.4...2.3.2............2.2.......2.......2....2.2...........",
+                "....................................2.........2.................",
+                "1111111111111111111111..1111111111111111111111111111111111111111",
+                "1111111111111111111111..1111111111111111111111111111111111111111"
+            ];
+            const mapWidth = mapData[0].length * TILE_SIZE;
 
-                    if(y >= maxy) continue; maxy = y;
-                    ctx.fillStyle = (i%4<2) ? "#444" : "#4a4a4a"; ctx.fillRect(x-w/2, y, w, 6); // 道路
-                    ctx.fillStyle = (i%4<2) ? "#fff" : "#ff3b30"; ctx.fillRect(x-w/2-10*scale, y, 10*scale, 6); // 縁石
-                    ctx.fillRect(x+w/2, y, 10*scale, 6);
-                }
-                // 自機描写
-                ctx.fillStyle = "#00ffcc"; ctx.fillRect(canvas.width/2-15, canvas.height-50, 30, 15);
-                ctx.fillStyle = "#fff"; ctx.fillRect(canvas.width/2-10, canvas.height-58, 6, 8); ctx.fillRect(canvas.width/2+4, canvas.height-58, 6, 8); // タイヤ
-                animId = requestAnimationFrame(renderRace);
-            }
-            renderRace();
-        }
-
-        // ==========================================
-        // 🏃 ゲーム2: 2Dマリオ風プラットフォーマーエンジン
-        // ==========================================
-        function startPlatformer() {
-            document.getElementById('menu-view').style.display = 'none';
-            document.getElementById('action-stage').style.display = 'block';
-            const canvas = document.getElementById("actCanvas"); const ctx = canvas.getContext("2d");
-            let keys = {}; document.onkeydown = (e) => keys[e.key] = true; document.onkeyup = (e) => keys[e.key] = false;
-
-            let px = 50, py = 200, vx = 0, vy = 0, onGround = false;
-            // 1=地面, 2=レンガブロック, 3=ゴール旗
-            let map = [
-                [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-                [0,0,0,0,0,2,2,0,0,0,0,0,0,2,3,2,0,0,0,0,0,0],
-                [0,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,0,0,0],
-                [1,1,1,1,1,0,0,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1]
+            // 敵キャラクターデータ
+            let enemies = [
+                { x: 250, y: 224, vx: -1, width: 24, height: 24, alive: true },
+                { x: 500, y: 224, vx: -1, width: 24, height: 24, alive: true },
+                { x: 900, y: 224, vx: -1, width: 24, height: 24, alive: true },
+                { x: 1300, y: 224, vx: -1, width: 24, height: 24, alive: true }
             ];
 
-            function renderAction() {
-                if(keys["ArrowLeft"]) vx = -3; else if(keys["ArrowRight"]) vx = 3; else vx = 0;
-                if(keys[" "] && onGround) { vy = -8.5; onGround = false; keys[" "] = false; }
-                
-                vy += 0.4; px += vx; py += vy; // 重力と移動量適応
-                if(py > canvas.height) { px=50; py=100; vy=0; } // 落下したらリセット
+            // 🪙 動的コインデータ
+            let activeCoins = [];
+            for(let r=0; r<mapData.length; r++) {
+                for(let c=0; c<mapData[r].length; c++) {
+                    if(mapData[r][c] === '4') activeCoins.push({ x: c*TILE_SIZE+8, y: r*TILE_SIZE+8, collected: false });
+                }
+            }
 
-                // 簡易当たり判定（地面に接地）
-                if(py >= 210) { py = 210; vy = 0; onGround = true; }
+            // --- 🎨 プログラム内ドット絵レンダラー ---
+            function drawPattern(ctx, x, y, size, pattern, colors) {
+                for(let row=0; row<pattern.length; row++) {
+                    for(let col=0; col<pattern[row].length; col++) {
+                        let colorIdx = pattern[row][col];
+                        if(colorIdx !== 0) {
+                            ctx.fillStyle = colors[colorIdx];
+                            ctx.fillRect(x + col*size, y + row*size, size, size);
+                        }
+                    }
+                }
+            }
 
-                ctx.fillStyle = "#5c94fc"; ctx.fillRect(0,0,canvas.width,canvas.height); // 空の色
+            // プレイヤーのドット絵パターン (8x8)
+            const chrDot = [
+                [0,0,1,1,1,1,0,0],
+                [0,1,1,5,5,1,1,0],
+                [0,1,5,1,5,1,5,0],
+                [0,1,1,1,1,1,1,0],
+                [0,0,2,2,2,2,0,0],
+                [0,2,2,3,3,2,2,0],
+                [0,0,2,2,2,2,0,0],
+                [0,0,6,0,0,6,0,0]
+            ];
+            const chrColors = { 1: '#ff3b30', 2: '#007aff', 3: '#ffcc00', 5: '#fff', 6: '#5856d6' };
 
-                // マップチップ配置
-                for(let r=0; r<4; r++) {
-                    for(let c=0; c<22; c++) {
-                        let type = map[r][c];
-                        if(type === 1) { ctx.fillStyle = "#fc9c5c"; ctx.fillRect(c*25, r*30+150, 24, 29); } // 地面
-                        if(type === 2) { ctx.fillStyle = "#b84400"; ctx.fillRect(c*25, r*30+150, 24, 29); } // レンガ
-                        if(type === 3) { ctx.fillStyle = "#00ffcc"; ctx.fillRect(c*25+10, r*30+140, 5, 39); } // ゴール旗
+            // 栗ボー風の敵のドット絵パターン
+            const enmDot = [
+                [0,0,0,1,1,0,0,0],
+                [0,0,1,1,1,1,0,0],
+                [0,1,2,1,1,2,1,0],
+                [1,1,1,1,1,1,1,1],
+                [1,1,3,3,3,3,1,1],
+                [0,1,1,1,1,1,1,0],
+                [0,0,1,1,1,1,0,0],
+                [0,4,4,0,0,4,4,0]
+            ];
+            const enmColors = { 1: '#a0522d', 2: '#fff', 3: '#000', 4: '#333' };
+
+            // タイルのドットパターン
+            const blockDot = [
+                [1,1,1,1,1,1,1,1],
+                [1,2,2,2,2,2,2,1],
+                [1,2,3,3,3,3,2,1],
+                [1,2,3,3,3,3,2,1],
+                [1,2,3,3,3,3,2,1],
+                [1,2,3,3,3,3,2,1],
+                [1,2,2,2,2,2,2,1],
+                [1,1,1,1,1,1,1,1]
+            ];
+
+            // --- ⚙️ メインループ ---
+            function update() {
+                // プレイヤー移動
+                if (keys["ArrowLeft"]) { player.vx = -3.5; player.facing = -1; player.animFrame++; }
+                else if (keys["ArrowRight"]) { player.vx = 3.5; player.facing = 1; player.animFrame++; }
+                else { player.vx *= 0.8; } // 摩擦
+
+                if (keys[" "] && player.onGround) {
+                    player.vy = -9.5;
+                    player.onGround = false;
+                }
+
+                // 重力
+                player.vy += 0.5;
+                player.x += player.vx;
+                player.y += player.vy;
+
+                // 画面外チェック（落下死）
+                if (player.y > canvas.height) { resetPlayer(); }
+                if (player.x < 0) player.x = 0;
+
+                // 地面・ブロックとの当たり判定 (簡易版)
+                player.onGround = false;
+                let gridY = Math.floor((player.y + player.height) / TILE_SIZE);
+                let gridX = Math.floor((player.x + player.width/2) / TILE_SIZE);
+
+                if (gridY >= 0 && gridY < mapData.length && gridX >= 0 && gridX < mapData[gridY].length) {
+                    let tile = mapData[gridY][gridX];
+                    let tileTop = gridY * TILE_SIZE;
+                    if ((tile === '1' || tile === '2' || tile === '3') && player.y + player.height >= tileTop && player.vy >= 0) {
+                        player.y = tileTop - player.height;
+                        player.vy = 0;
+                        player.onGround = true;
                     }
                 }
 
-                // プレイヤーのドット風表示
-                ctx.fillStyle = "#ffcc00"; ctx.fillRect(px, py, 16, 24); // キャラ本体
-                ctx.fillStyle = "#ff3b30"; ctx.fillRect(px+2, py, 12, 6); // 帽子風のライン
+                // 敵の挙動と判定
+                enemies.forEach(enemy => {
+                    if (!enemy.alive) return;
+                    enemy.x += enemy.vx;
 
-                // ゴール判定
-                if(px > 340 && px < 370 && py > 140) { alert("🚩 STAGE CLEAR!! ゴールおめでとう！"); px=50; py=200; }
+                    // 壁に当たったら反転
+                    let eGridX = Math.floor((enemy.x + (enemy.vx > 0 ? enemy.width : 0)) / TILE_SIZE);
+                    let eGridY = Math.floor((enemy.y + enemy.height/2) / TILE_SIZE);
+                    if (mapData[eGridY] && (mapData[eGridY][eGridX] === '1' || mapData[eGridY][eGridX] === '2')) {
+                        enemy.vx *= -1;
+                    }
 
-                animId = requestAnimationFrame(renderAction);
+                    // プレイヤーとの衝突判定
+                    if (player.x < enemy.x + enemy.width && player.x + player.width > enemy.x &&
+                        player.y < enemy.y + enemy.height && player.y + player.height > enemy.y) {
+                        
+                        // 上から踏みつけた場合
+                        if (player.vy > 0 && player.y + player.height < enemy.y + 12) {
+                            enemy.alive = false;
+                            player.vy = -6.5; // ポーンと跳ねる
+                            score += 100;
+                        } else {
+                            // 横からぶつかったらミス
+                            resetPlayer();
+                        }
+                    }
+                });
+
+                // コイン収集判定
+                activeCoins.forEach(coin => {
+                    if (coin.collected) return;
+                    if (player.x < coin.x + 16 && player.x + player.width > coin.x &&
+                        player.y < coin.y + 24 && player.y + player.height > coin.y) {
+                        coin.collected = true;
+                        coins++;
+                        score += 50;
+                    }
+                });
+
+                // カメラの追従スクロール
+                cameraX = player.x - canvas.width / 2 + player.width / 2;
+                if (cameraX < 0) cameraX = 0;
+                if (cameraX > mapWidth - canvas.width) cameraX = mapWidth - canvas.width;
+
+                // UI表示更新
+                document.getElementById("score-disp").innerText = String(score).padStart(4, '0');
+                document.getElementById("coin-disp").innerText = String(coins).padStart(2, '0');
+
+                // 🏁 ゴール判定 (マップの右端付近に到達)
+                if (player.x > mapWidth - 80) {
+                    alert("🎉 STAGE CLEAR!! 全面クリア達成！");
+                    resetGame();
+                }
             }
-            renderAction();
-        }
 
-        window.onload = generateQuestion;
+            function resetPlayer() {
+                player.x = 50; player.y = 100; player.vx = 0; player.vy = 0;
+            }
+
+            function resetGame() {
+                resetPlayer(); score = 0; coins = 0;
+                enemies.forEach(e => e.alive = true);
+                activeCoins.forEach(c => c.collected = false);
+            }
+
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                ctx.save();
+                ctx.translate(-cameraX, 0); // カメラのスクロールを適用
+
+                // マップ（ステージ）の描画
+                for (let r = 0; r < mapData.length; r++) {
+                    for (let c = 0; c < mapData[r].length; c++) {
+                        let tile = mapData[r][c];
+                        let tx = c * TILE_SIZE;
+                        let ty = r * TILE_SIZE;
+
+                        if (tile === '1') { // 地面
+                            drawPattern(ctx, tx, ty, 4, blockDot, {1: '#8b4513', 2: '#cd853f', 3: '#228b22'});
+                        } else if (tile === '2') { // レンガ
+                            drawPattern(ctx, tx, ty, 4, blockDot, {1: '#000', 2: '#b22222', 3: '#cd5c5c'});
+                        } else if (tile === '3') { // ハテナブロック
+                            drawPattern(ctx, tx, ty, 4, blockDot, {1: '#000', 2: '#ff8c00', 3: '#ffd700'});
+                        }
+                    }
+                }
+
+                // コインの描画
+                activeCoins.forEach(coin => {
+                    if (coin.collected) return;
+                    ctx.fillStyle = "#ffd700";
+                    ctx.beginPath(); ctx.arc(coin.x + 8, coin.y + 8, 7, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = "#fff";
+                    ctx.fillRect(coin.x + 7, coin.y + 4, 2, 8); // コインの輝き
+                });
+
+                // 敵の描画
+                enemies.forEach(enemy => {
+                    if (!enemy.alive) return;
+                    drawPattern(ctx, enemy.x, enemy.y, 3, enmDot, enmColors);
+                });
+
+                // プレイヤーキャラクターの描画（反転対応）
+                ctx.save();
+                if (player.facing === -1) {
+                    ctx.translate(player.x + player.width, player.y);
+                    ctx.scale(-1, 1);
+                    drawPattern(ctx, 0, 0, 4, chrDot, chrColors);
+                } else {
+                    drawPattern(ctx, player.x, player.y, 4, chrDot, chrColors);
+                }
+                ctx.restore();
+
+                ctx.restore();
+            }
+
+            function loop() {
+                update();
+                draw();
+                if(isGaming) animId = requestAnimationFrame(loop);
+            }
+            loop();
+        }
     </script>
 </body>
 </html>
