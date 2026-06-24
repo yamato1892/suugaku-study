@@ -3,25 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>令和8年度 数学Ⅰ・高度eラーニングシステム</title>
+    <title>令和8年度 中学校数学eラーニング演習システム（中2・1学期課程）</title>
     <style>
-        /* 勉強画面の見た目（お堅いデザイン） */
         body { font-family: 'MS PGothic', sans-serif; background: #f4f6f9; color: #333; margin: 0; padding: 20px; }
-        .study-container { max-width: 800px; margin: 30px auto; background: white; padding: 30px; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        h1 { font-size: 20px; color: #2c3e50; border-bottom: 2px solid #34495e; padding-bottom: 10px; margin-top: 0; }
-        .alert-box { background: #e8f4fd; border-left: 4px solid #2980b9; padding: 15px; margin: 20px 0; font-size: 14px; }
-        .question { font-weight: bold; font-size: 18px; margin: 20px 0; }
-        .formula { background: #f9f9f9; padding: 15px; font-family: monospace; border-radius: 4px; text-align: center; font-size: 18px; }
-
-        /* ゲーム画面（最初は完全に非表示） */
-        #game-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; color: #fff;
-            z-index: 99999;
-            text-align: center;
-        }
+        .study-container { max-width: 600px; margin: 30px auto; background: white; padding: 30px; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        h1 { font-size: 18px; color: #2c3e50; border-bottom: 2px solid #34495e; padding-bottom: 10px; margin-top: 0; }
+        .alert-box { background: #e8f4fd; border-left: 4px solid #2980b9; padding: 12px; margin: 15px 0; font-size: 13px; color: #2c3e50; }
+        .question-box { background: #f9f9f9; padding: 20px; border: 1px solid #eee; border-radius: 4px; margin-bottom: 20px; }
+        .question-title { font-weight: bold; font-size: 16px; margin-bottom: 10px; }
+        .formula { font-family: monospace; font-size: 20px; text-align: center; margin: 15px 0; background: #fff; padding: 10px; border: 1px dashed #ccc; line-height: 1.5; }
+        input[type="text"] { padding: 8px; width: 120px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 8px 15px; font-size: 14px; background: #2980b9; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #2171a3; }
+        .btn-next { background: #27ae60; margin-left: 10px; display: none; }
+        .btn-next:hover { background: #219653; }
+        .result-msg { font-weight: bold; font-size: 18px; margin-top: 15px; min-height: 25px; }
+        .progress { font-size: 13px; color: #666; margin-bottom: 10px; text-align: right; }
+        
+        /* ゲーム画面 */
+        #game-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: #fff; z-index: 99999; text-align: center; }
         iframe { width: 100%; height: 95%; border: none; }
         .footer-bar { height: 5%; background: #111; color: #666; font-size: 12px; line-height: 25px; }
     </style>
@@ -29,56 +29,116 @@
 <body>
 
     <div class="study-container" id="study-page">
-        <h1>【数理科学演習】二次関数の最大・最小に関する考察</h1>
+        <h1>【数学Ⅱ】1学期課程：計算力集中強化ドリル</h1>
         <div class="alert-box">
-            <strong>お知らせ：</strong> 本システムは学習履歴を記録しています。各自、データシートを参考に演習を進めてください。
+            <strong>浅口市学習支援モード：</strong> ランダム生成された問題を解き、半角数字で解答してください。
         </div>
-        <p class="question">問題：次の方程式のグラフの頂点を求めよ。</p>
-        <div class="formula">
-            y = 2x² - 4x + 5
+        
+        <div class="progress" id="q-progress">問題番号: #ランダム生成</div>
+        
+        <div class="question-box">
+            <div class="question-title" id="q-title">読み込み中...</div>
+            <div class="formula" id="q-formula">読み込み中...</div>
+            解答：<input type="text" id="user-answer" placeholder="数字を入力">
+            <button onclick="checkAnswer()" id="btn-submit">採点する</button>
+            <button onclick="generateQuestion()" id="btn-next" class="btn-next">次のランダム問題へ</button>
+            <div id="result" class="result-msg"></div>
         </div>
-        <p style="color: #666; font-size: 14px; margin-top: 30px;">※解答を入力して「送信」を押すと、自動採点が行われます。</p>
-        <input type="text" placeholder="（例）(1, 3)" style="padding: 5px; width: 150px;">
-        <button onclick="alert('データが保存されました。')">回答を送信</button>
+        <p style="color: #999; font-size: 11px;">※ログデータ送信元: yamato1892 / 岡山県教育ネットワーク対応済み</p>
     </div>
 
     <div id="game-overlay">
         <iframe id="game-frame" src="https://images.shonenjump.com/omake/html/mini_game/index.html"></iframe>
         <div class="footer-bar">
-            【緊急回避】先生が来たら「Escキー」を連打しろ！瞬時にNHK高校講座に切り替わります
+            【緊急回避】先生が来たら「Escキー」を叩け！一瞬でNHK高校講座に切り替わります
         </div>
     </div>
 
     <script>
-        // ==========================================
-        // 🛠️ 隠しコマンドの設定
-        // ==========================================
-        // キーボードで「open」と連続で打ち込むとゲームが起動します
+        let currentAnswer = "";
+        let currentHint = "";
+        let questionCount = 1;
+
+        // 🎲 ランダムな問題を生成する関数
+        function generateQuestion() {
+            document.getElementById('q-progress').innerText = `演習本数: ${questionCount}問目`;
+            document.getElementById('user-answer').value = '';
+            document.getElementById('result').innerHTML = '';
+            document.getElementById('btn-next').style.display = 'none';
+            document.getElementById('btn-submit').style.display = 'inline-block';
+            document.getElementById('user-answer').disabled = false;
+
+            const type = Math.random() > 0.5 ? "calculation" : "equation";
+
+            if (type === "calculation") {
+                const a1 = Math.floor(Math.random() * 7) + 2; 
+                const a2 = Math.floor(Math.random() * 5) + 2; 
+                const b1 = Math.floor(Math.random() * 7) + 2;
+                const b2 = Math.floor(Math.random() * 5) + 1;
+
+                document.getElementById('q-title').innerText = "問題：次の式を計算したとき、文字「a」の係数（数字）を答えなさい。";
+                document.getElementById('q-formula').innerHTML = `${a1}a + ${b1}b + ${a2}a - ${b2}b`;
+                
+                currentAnswer = String(a1 + a2);
+                currentHint = `ヒント：同じ文字の仲間（同類項）を計算しよう。 ${a1}a と +${a2}a を足すだけだよ。`;
+            } else {
+                const ansX = Math.floor(Math.random() * 5) + 1; 
+                const ansY = Math.floor(Math.random() * 4) + 1; 
+                
+                const c1 = ansX + ansY;
+                const c2 = ansX - ansY;
+
+                document.getElementById('q-title').innerText = "問題：次の連立方程式を解き、x の値を答えなさい。";
+                document.getElementById('q-formula').innerHTML = `① x + y = ${c1} <br> ② x - y = ${c2}`;
+                
+                currentAnswer = String(ansX);
+                currentHint = `ヒント：①の式と②の式を縦に足すと、+y と -y が消えて 2x = ${c1 + c2} になるよ。`;
+            }
+            questionCount++;
+        }
+
+        // 📝 採点する関数
+        function checkAnswer() {
+            const ans = document.getElementById('user-answer').value.trim();
+            const resultDiv = document.getElementById('result');
+            
+            if (ans === '') {
+                resultDiv.innerHTML = '<span style="color: #e67e22;">値を入力してください。</span>';
+                return;
+            }
+
+            if (ans === currentAnswer) {
+                resultDiv.innerHTML = '<span style="color: #27ae60;">◯ 正解！自動生成された次の問題に進めます。</span>';
+                document.getElementById('btn-submit').style.display = 'none';
+                document.getElementById('btn-next').style.display = 'inline-block';
+                document.getElementById('user-answer').disabled = true;
+            } else {
+                resultDiv.innerHTML = `<span style="color: #c0392b;">× 不正解（${currentHint}）</span>`;
+            }
+        }
+
+        // 🛠️ 隠しコマンド（open）
         const secretCommand = 'open'; 
         let inputLog = '';
 
         window.addEventListener('keydown', (e) => {
-            
-            // 🚨 【緊急回避】Escキーが押されたら、一瞬でNHK高校講座にリダイレクト（ページ移動）する
             if (e.key === 'Escape') {
                 window.location.href = 'https://www.nhk.or.jp/kokokoza/';
                 return;
             }
 
-            // 入力されたキーを記録
             inputLog += e.key.toLowerCase();
-
-            // コマンドの文字数を超えたら、古い入力を削る
             if (inputLog.length > secretCommand.length) {
                 inputLog = inputLog.substring(inputLog.length - secretCommand.length);
             }
 
-            // コマンドが一致したらゲーム画面をドカンと表示
             if (inputLog === secretCommand) {
                 document.getElementById('study-page').style.display = 'none';
                 document.getElementById('game-overlay').style.display = 'block';
             }
         });
+
+        window.onload = generateQuestion;
     </script>
 </body>
 </html>
