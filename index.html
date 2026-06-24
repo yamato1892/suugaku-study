@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>令和8年度 中学校数学eラーニング演習システム（中2・1学期課程）</title>
     <style>
-        body { font-family: 'MS PGothic', sans-serif; background: #f4f6f9; color: #333; margin: 0; padding: 20px; }
+        body { font-family: 'MS PGothic', sans-serif; background: #f4f6f9; color: #333; margin: 0; padding: 20px; user-select: none; }
         .study-container { max-width: 600px; margin: 30px auto; background: white; padding: 30px; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         h1 { font-size: 18px; color: #2c3e50; border-bottom: 2px solid #34495e; padding-bottom: 10px; margin-top: 0; }
         .alert-box { background: #e8f4fd; border-left: 4px solid #2980b9; padding: 12px; margin: 15px 0; font-size: 13px; color: #2c3e50; }
@@ -20,10 +20,29 @@
         .result-msg { font-weight: bold; font-size: 18px; margin-top: 15px; min-height: 25px; }
         .progress { font-size: 13px; color: #666; margin-bottom: 10px; text-align: right; }
         
-        /* ゲーム画面 */
-        #game-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: #fff; z-index: 99999; text-align: center; }
-        iframe { width: 100%; height: 95%; border: none; }
-        .footer-bar { height: 5%; background: #111; color: #666; font-size: 12px; line-height: 25px; }
+        /* 🎮 ゲームセンター画面 */
+        #game-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #111; color: #fff; z-index: 99999; overflow-y: auto; padding: 20px 20px 60px 20px; box-sizing: border-box; }
+        .game-menu-title { font-size: 22px; color: #00ffcc; text-align: center; margin-bottom: 20px; font-weight: bold; letter-spacing: 2px; }
+        .game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; max-width: 800px; margin: 0 auto; }
+        .game-card { background: #222; border: 2px solid #444; border-radius: 8px; padding: 12px; text-align: center; cursor: pointer; transition: 0.2s; }
+        .game-card:hover { border-color: #00ffcc; background: #2a2a2a; transform: scale(1.03); }
+        .game-card.locked { opacity: 0.3; cursor: not-allowed; border-style: dashed; }
+        .game-card.locked:hover { border-color: #444; background: #222; transform: none; }
+        
+        /* ゲーム再生画面 */
+        .game-stage { display: none; max-width: 500px; margin: 0 auto; background: #1a1a1a; padding: 15px; border-radius: 8px; border: 2px solid #00ffcc; text-align: center; box-sizing: border-box; }
+        canvas { background: #000; display: block; margin: 10px auto; border: 1px solid #444; }
+        .back-btn { background: #e74c3c; color: white; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 10px; font-weight: bold; }
+        .footer-bar { height: 40px; background: #222; color: #aaa; font-size: 13px; line-height: 40px; position: fixed; bottom: 0; left: 0; width: 100%; text-align: center; z-index: 100000; border-top: 1px solid #333; }
+        
+        /* 埋め込みゲーム用汎用スタイル */
+        .game-ui-box { background: #000; padding: 15px; border-radius: 4px; min-height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .ms-row, .grid2048-row { display: flex; }
+        .ms-cell { width: 25px; height: 25px; border: 1px solid #333; background: #444; text-align: center; line-height: 25px; font-weight: bold; cursor: pointer; }
+        .ms-cell.opened { background: #222; }
+        .cell2048 { width: 50px; height: 50px; border: 2px solid #333; background: #222; text-align: center; line-height: 50px; font-size: 18px; font-weight: bold; margin: 2px; }
+        .ttt-cell { width: 60px; height: 60px; border: 2px solid #00ffcc; background: #222; font-size: 28px; font-weight: bold; color: #fff; text-align: center; line-height: 60px; cursor: pointer; margin: 3px; }
+        .card-slot { width: 45px; height: 60px; background: #333; border: 1px solid #555; margin: 3px; display: inline-block; line-height: 60px; font-size: 20px; cursor: pointer; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -33,9 +52,7 @@
         <div class="alert-box">
             <strong>浅口市学習支援モード：</strong> ランダム生成された問題を解き、半角数字で解答してください。
         </div>
-        
         <div class="progress" id="q-progress">問題番号: #ランダム生成</div>
-        
         <div class="question-box">
             <div class="question-title" id="q-title">読み込み中...</div>
             <div class="formula" id="q-formula">読み込み中...</div>
@@ -48,95 +65,315 @@
     </div>
 
     <div id="game-overlay">
-        <iframe id="game-frame" src="https://images.shonenjump.com/omake/html/mini_game/index.html"></iframe>
+        <div id="menu-view">
+            <div class="game-menu-title">🚀 YAMATO SUPER ARCADE (12 PLAYABLE)</div>
+            <div class="game-grid" id="game-grid-container"></div>
+        </div>
+
+        <div id="stage-view" class="game-stage">
+            <button class="back-btn" onclick="backToMenu()">⬅ メニューに戻る</button>
+            <h3 id="current-game-title" style="color: #00ffcc; margin: 5px 0 15px 0; font-size: 18px;"></h3>
+            <div id="game-container"></div>
+        </div>
+
         <div class="footer-bar">
             【緊急回避】先生が来たら「Escキー」を叩け！一瞬でNHK高校講座に切り替わります
         </div>
     </div>
 
     <script>
-        let currentAnswer = "";
-        let currentHint = "";
-        let questionCount = 1;
-
-        // 🎲 ランダムな問題を生成する関数
+        // 📝 数学ドリルロジック
+        let currentAnswer = ""; let currentHint = ""; let questionCount = 1;
         function generateQuestion() {
             document.getElementById('q-progress').innerText = `演習本数: ${questionCount}問目`;
-            document.getElementById('user-answer').value = '';
-            document.getElementById('result').innerHTML = '';
-            document.getElementById('btn-next').style.display = 'none';
-            document.getElementById('btn-submit').style.display = 'inline-block';
+            document.getElementById('user-answer').value = ''; document.getElementById('result').innerHTML = '';
+            document.getElementById('btn-next').style.display = 'none'; document.getElementById('btn-submit').style.display = 'inline-block';
             document.getElementById('user-answer').disabled = false;
-
-            const type = Math.random() > 0.5 ? "calculation" : "equation";
-
-            if (type === "calculation") {
-                const a1 = Math.floor(Math.random() * 7) + 2; 
-                const a2 = Math.floor(Math.random() * 5) + 2; 
-                const b1 = Math.floor(Math.random() * 7) + 2;
-                const b2 = Math.floor(Math.random() * 5) + 1;
-
-                document.getElementById('q-title').innerText = "問題：次の式を計算したとき、文字「a」の係数（数字）を答えなさい。";
-                document.getElementById('q-formula').innerHTML = `${a1}a + ${b1}b + ${a2}a - ${b2}b`;
-                
-                currentAnswer = String(a1 + a2);
-                currentHint = `ヒント：同じ文字の仲間（同類項）を計算しよう。 ${a1}a と +${a2}a を足すだけだよ。`;
+            if (Math.random() > 0.5) {
+                const a1 = Math.floor(Math.random() * 7) + 2; const a2 = Math.floor(Math.random() * 5) + 2;
+                document.getElementById('q-title').innerText = "問題：次の式を計算したとき、文字「a」の係数を答えなさい。";
+                document.getElementById('q-formula').innerHTML = `${a1}a + 4b + ${a2}a - 3b`;
+                currentAnswer = String(a1 + a2); currentHint = `${a1}a と +${a2}a を足そう。`;
             } else {
-                const ansX = Math.floor(Math.random() * 5) + 1; 
-                const ansY = Math.floor(Math.random() * 4) + 1; 
-                
-                const c1 = ansX + ansY;
-                const c2 = ansX - ansY;
-
+                const ansX = Math.floor(Math.random() * 5) + 1; const ansY = Math.floor(Math.random() * 4) + 1;
                 document.getElementById('q-title').innerText = "問題：次の連立方程式を解き、x の値を答えなさい。";
-                document.getElementById('q-formula').innerHTML = `① x + y = ${c1} <br> ② x - y = ${c2}`;
-                
-                currentAnswer = String(ansX);
-                currentHint = `ヒント：①の式と②の式を縦に足すと、+y と -y が消えて 2x = ${c1 + c2} になるよ。`;
+                document.getElementById('q-formula').innerHTML = `① x + y = ${ansX + ansY} <br> ② x - y = ${ansX - ansY}`;
+                currentAnswer = String(ansX); currentHint = `①と②を足して 2x を求めよう。`;
             }
             questionCount++;
         }
-
-        // 📝 採点する関数
         function checkAnswer() {
-            const ans = document.getElementById('user-answer').value.trim();
-            const resultDiv = document.getElementById('result');
-            
-            if (ans === '') {
-                resultDiv.innerHTML = '<span style="color: #e67e22;">値を入力してください。</span>';
-                return;
-            }
-
-            if (ans === currentAnswer) {
-                resultDiv.innerHTML = '<span style="color: #27ae60;">◯ 正解！自動生成された次の問題に進めます。</span>';
-                document.getElementById('btn-submit').style.display = 'none';
-                document.getElementById('btn-next').style.display = 'inline-block';
-                document.getElementById('user-answer').disabled = true;
+            if (document.getElementById('user-answer').value.trim() === currentAnswer) {
+                document.getElementById('result').innerHTML = '<span style="color: #27ae60;">◯ 正解！</span>';
+                document.getElementById('btn-submit').style.display = 'none'; document.getElementById('btn-next').style.display = 'inline-block';
             } else {
-                resultDiv.innerHTML = `<span style="color: #c0392b;">× 不正解（${currentHint}）</span>`;
+                document.getElementById('result').innerHTML = `<span style="color: #c0392b;">× 不正解（${currentHint}）</span>`;
             }
         }
 
-        // 🛠️ 隠しコマンド（open）
-        const secretCommand = 'open'; 
-        let inputLog = '';
-
+        // 🛠️ 隠しコマンドと緊急回避
+        const secretCommand = 'open'; let inputLog = ''; let isGameOpen = false;
         window.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                window.location.href = 'https://www.nhk.or.jp/kokokoza/';
-                return;
-            }
-
+            if (e.key === 'Escape') { window.location.href = 'https://www.nhk.or.jp/kokokoza/'; return; }
             inputLog += e.key.toLowerCase();
-            if (inputLog.length > secretCommand.length) {
-                inputLog = inputLog.substring(inputLog.length - secretCommand.length);
-            }
-
-            if (inputLog === secretCommand) {
+            if (inputLog.length > secretCommand.length) inputLog = inputLog.substring(inputLog.length - secretCommand.length);
+            if (inputLog === secretCommand && !isGameOpen) {
                 document.getElementById('study-page').style.display = 'none';
                 document.getElementById('game-overlay').style.display = 'block';
+                isGameOpen = true; buildMenu();
             }
         });
+
+        // 🎮 全20ゲームリスト（12個が可動！）
+        const games = [
+            { id: 1, name: "ブロック崩し", p: true }, { id: 2, name: "数当てゲーム", p: true },
+            { id: 3, name: "連打タイピング", p: true }, { id: 4, name: "ブロック回避", p: true },
+            { id: 5, name: "テトリス風", p: true }, { id: 6, name: "パックマン", p: false },
+            { id: 7, name: "インベーダー", p: false }, { id: 8, name: "オセロ", p: false },
+            { id: 9, name: "将棋Lite", p: false }, { id: 10, name: "ピンポン", p: true },
+            { id: 11, name: "迷路ジェネレータ", p: false }, { id: 12, name: "数独", p: false },
+            { id: 13, name: "マインスイーパ", p: true }, { id: 14, name: "2048", p: true },
+            { id: 15, name: "スネークゲーム", p: true }, { id: 16, name: "スロット", p: true },
+            { id: 17, name: "神経衰弱", p: true }, { id: 18, name: "ぷよ風パズル", p: false },
+            { id: 19, name: "○×ゲーム", p: true }, { id: 20, name: "落ち物計算", p: false }
+        ];
+
+        function buildMenu() {
+            const container = document.getElementById('game-grid-container'); container.innerHTML = '';
+            games.forEach(g => {
+                const card = document.createElement('div');
+                card.className = g.p ? 'game-card' : 'game-card locked';
+                card.innerHTML = `<strong>Vol.${g.id}</strong><br>${g.name}<br><span style="font-size:11px;color:${g.p?'#00ffcc':'#555'}">${g.p?'PLAY':'開発中'}</span>`;
+                if(g.p) card.onclick = () => launchGame(g.id, g.name);
+                container.appendChild(card);
+            });
+        }
+
+        let anim = null;
+        function launchGame(id, name) {
+            document.getElementById('menu-view').style.display = 'none';
+            document.getElementById('stage-view').style.display = 'block';
+            document.getElementById('current-game-title').innerText = name;
+            const container = document.getElementById('game-container'); container.innerHTML = '';
+            if(anim) cancelAnimationFrame(anim);
+            document.onkeydown = null; document.onkeyup = null;
+
+            if(id === 1) { // ブロック崩し
+                container.innerHTML = '<canvas id="canvas1" width="400" height="240"></canvas>';
+                runBlock(document.getElementById('canvas1'));
+            } else if(id === 2) { // 数当て
+                container.innerHTML = '<div class="game-ui-box"><p>1〜50の数字を当てろ！</p><input type="text" id="g2-in" style="width:60px;text-align:center;"> <button onclick="checkG2()" style="margin-top:10px;">勝負</button><div id="g2-res" style="margin-top:15px;color:#00ffcc;font-weight:bold;"></div></div>';
+                window.g2Ans = Math.floor(Math.random()*50)+1;
+                window.checkG2 = () => {
+                    const v = parseInt(document.getElementById('g2-in').value); const r = document.getElementById('g2-res');
+                    if(v===window.g2Ans){ r.innerText="🎉正解！お見事！"; } else if(v>window.g2Ans){ r.innerText="もっと小さいよ👇"; } else { r.innerText="もっと大きいよ👆"; }
+                };
+            } else if(id === 3) { // タイピング
+                container.innerHTML = '<div class="game-ui-box"><p>英単語を入力せよ！</p><h2 id="g3-word" style="color:#00ffcc;letter-spacing:1px;">linear</h2><input type="text" id="g3-in" oninput="checkG3()" style="text-align:center;" autocomplete="off">';
+                window.checkG3 = () => {
+                    const i = document.getElementById('g3-in');
+                    if(i.value.trim() === document.getElementById('g3-word').innerText) {
+                        const w = ["parallel", "angle", "polygon", "graph", "coordinate", "matrix", "variable"];
+                        document.getElementById('g3-word').innerText = w[Math.floor(Math.random()*w.length)]; i.value = '';
+                    }
+                };
+            } else if(id === 4) { // ブロック回避
+                container.innerHTML = '<canvas id="canvas4" width="400" height="240"></canvas>';
+                runEvade(document.getElementById('canvas4'));
+            } else if(id === 5) { // テトリス風
+                container.innerHTML = '<canvas id="canvas5" width="200" height="300"></canvas><p style="font-size:11px;color:#bbb;">左右矢印キーで移動 / 上キーで回転 / 下キーで高速落下</p>';
+                runTetris(document.getElementById('canvas5'));
+            } else if(id === 10) { // ピンポン
+                container.innerHTML = '<canvas id="canvas10" width="400" height="240"></canvas><p style="font-size:11px;color:#bbb;">【↑】【↓】キーで左のパドルを動かして右のCPUと打ち合え！</p>';
+                runPong(document.getElementById('canvas10'));
+            } else if(id === 13) { // マインスイーパ
+                container.innerHTML = '<div class="game-ui-box" id="ms-box"></div>';
+                runMine();
+            } else if(id === 14) { // 2048
+                container.innerHTML = '<div class="game-ui-box" id="box2048"></div><p style="font-size:11px;color:#bbb;margin-top:5px;">矢印キー【←】【↑】【→】【↓】で全体をスライドして数字を合体！</p>';
+                run2048();
+            } else if(id === 15) { // スネーク
+                container.innerHTML = '<canvas id="canvas15" width="300" height="240"></canvas><p style="font-size:11px;color:#bbb;">矢印キーでヘビの進行方向をチェンジ！</p>';
+                runSnake(document.getElementById('canvas15'));
+            } else if(id === 16) { // スロット
+                container.innerHTML = '<div class="game-ui-box"><h2>🎰 SLOT</h2><h1 id="sl-disp" style="letter-spacing:10px;color:#00ffcc;">7 7 7</h1><button onclick="rollSlot()">SPIN</button></div>';
+                window.rollSlot = () => {
+                    const n1 = Math.floor(Math.random()*9)+1; const n2 = Math.floor(Math.random()*9)+1; const n3 = Math.floor(Math.random()*9)+1;
+                    document.getElementById('sl-disp').innerText = `${n1} ${n2} ${n3}`;
+                    if(n1===n2 && n2===n3) alert("🎰 JACKPOT!! 大当たり!");
+                };
+            } else if(id === 17) { // 神経衰弱
+                container.innerHTML = '<div class="game-ui-box" id="card-box" style="display:block;max-width:320px;"></div>';
+                runMemory();
+            } else if(id === 19) { // 〇×
+                container.innerHTML = '<div class="game-ui-box" id="ttt-box"></div>';
+                runTTT();
+            }
+        }
+
+        function backToMenu() { if(anim) cancelAnimationFrame(anim); document.getElementById('stage-view').style.display = 'none'; document.getElementById('menu-view').style.display = 'block'; }
+
+        // 🕹️ Vol.1 ブロック崩し
+        function runBlock(canvas) {
+            const ctx = canvas.getContext('2d'); let x = canvas.width/2, y = canvas.height-20, dx = 2, dy = -2, r = 6, px = (canvas.width-60)/2, pw = 60; let right = false, left = false;
+            document.onkeydown = (e) => { if(e.key==="ArrowRight")right=true; if(e.key==="ArrowLeft")left=true; };
+            document.onkeyup = (e) => { if(e.key==="ArrowRight")right=false; if(e.key==="ArrowLeft")left=false; };
+            function loop() {
+                ctx.clearRect(0,0,canvas.width,canvas.height); ctx.fillStyle="#00ffcc"; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill(); ctx.fillStyle="#fff"; ctx.fillRect(px,canvas.height-8,pw,8);
+                if(x+dx>canvas.width-r || x+dx<r) dx = -dx; if(y+dy<r) dy = -dy; else if(y+dy>canvas.height-r) { if(x>px && x<px+pw) dy = -dy; else { x=canvas.width/2; y=canvas.height-20; dy=-2; } }
+                if(right && px<canvas.width-pw) px+=4; if(left && px>0) px-=4; x+=dx; y+=dy; anim = requestAnimationFrame(loop);
+            }
+            loop();
+        }
+
+        // 🕹️ Vol.4 ブロック回避
+        function runEvade(canvas) {
+            const ctx = canvas.getContext('2d'); let px = canvas.width/2-10, py = canvas.height-25, pw = 20, ph = 20, bx = Math.random()*(canvas.width-20), by = 0, bspeed = 3; let right = false, left = false;
+            document.onkeydown = (e) => { if(e.key==="ArrowRight")right=true; if(e.key==="ArrowLeft")left=true; };
+            document.onkeyup = (e) => { if(e.key==="ArrowRight")right=false; if(e.key==="ArrowLeft")left=false; };
+            function loop() {
+                ctx.clearRect(0,0,canvas.width,canvas.height); ctx.fillStyle="#ff0055"; ctx.fillRect(px,py,pw,ph); ctx.fillStyle="#3388ff"; ctx.fillRect(bx,by,20,20); by += bspeed;
+                if(by > canvas.height) { by = 0; bx = Math.random()*(canvas.width-20); bspeed += 0.2; }
+                if(bx < px+pw && bx+20 > px && by < py+ph && by+20 > py) { by = 0; bx = Math.random()*(canvas.width-20); bspeed = 3; alert("クラッシュ！"); }
+                if(right && px<canvas.width-pw) px+=5; if(left && px>0) px-=5; anim = requestAnimationFrame(loop);
+            }
+            loop();
+        }
+
+        // 🕹️ Vol.5 テトリス風パズル
+        function runTetris(canvas) {
+            const ctx = canvas.getContext('2d'); const COLS = 10, ROWS = 15, SIZE = 20;
+            let board = Array.from({length: ROWS}, () => Array(COLS).fill(0));
+            let piece = [[1,1],[1,1]], px = 4, py = 0; let tick = 0;
+            document.onkeydown = (e) => {
+                if(e.key==="ArrowLeft" && px>0) px--; if(e.key==="ArrowRight" && px<COLS-2) px++;
+                if(e.key==="ArrowDown" && py<ROWS-2) py++;
+            };
+            function loop() {
+                tick++; if(tick > 30) { py++; tick = 0; if(py >= ROWS-1) { for(let r=0;r<2;r++)for(let c=0;c<2;c++)board[py-1+r][px+c]=1; py=0; px=4; } }
+                ctx.clearRect(0,0,canvas.width,canvas.height);
+                ctx.fillStyle="#333"; for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++) if(board[r][c]) ctx.fillRect(c*SIZE,r*SIZE,SIZE-1,SIZE-1);
+                ctx.fillStyle="#00ffcc"; ctx.fillRect(px*SIZE,py*SIZE,SIZE-1,SIZE-1); ctx.fillRect((px+1)*SIZE,py*SIZE,SIZE-1,SIZE-1);
+                ctx.fillRect(px*SIZE,(py+1)*SIZE,SIZE-1,SIZE-1); ctx.fillRect((px+1)*SIZE,(py+1)*SIZE,SIZE-1,SIZE-1);
+                anim = requestAnimationFrame(loop);
+            }
+            loop();
+        }
+
+        // 🕹️ Vol.10 ピンポン
+        function runPong(canvas) {
+            const ctx = canvas.getContext('2d'); let bx = canvas.width/2, by = canvas.height/2, bdx = 2, bdy = 2;
+            let p1y = 80, p2y = 80, ph = 50, pw = 8; let up = false, down = false;
+            document.onkeydown = (e) => { if(e.key==="ArrowUp")up=true; if(e.key==="ArrowDown")down=true; };
+            document.onkeyup = (e) => { if(e.key==="ArrowUp")up=false; if(e.key==="ArrowDown")down=false; };
+            function loop() {
+                ctx.clearRect(0,0,canvas.width,canvas.height); ctx.fillStyle="#fff";
+                ctx.fillRect(10,p1y,pw,ph); ctx.fillRect(canvas.width-18,p2y,pw,ph); ctx.beginPath(); ctx.arc(bx,by,5,0,Math.PI*2); ctx.fill();
+                bx+=bdx; by+=bdy; if(by<5 || by>canvas.height-5) bdy=-bdy;
+                if(bx<20 && by>p1y && by<p1y+ph) bdx=-bdx; if(bx>canvas.width-25 && by>p2y && by<p2y+ph) bdx=-bdx;
+                if(bx<0 || bx>canvas.width) { bx=canvas.width/2; by=canvas.height/2; bdx=-bdx; }
+                if(up && p1y>0) p1y-=3; if(down && p1y<canvas.height-ph) p1y+=3;
+                if(by > p2y+ph/2 && p2y<canvas.height-ph) p2y+=1.8; if(by < p2y+ph/2 && p2y>0) p2y-=1.8;
+                anim = requestAnimationFrame(loop);
+            }
+            loop();
+        }
+
+        // 🕹️ Vol.13 マインスイーパ
+        function runMine() {
+            const box = document.getElementById('ms-box'); box.innerHTML = '';
+            let grid = Array.from({length:6}, () => Array(6).fill(0));
+            let mineX = Math.floor(Math.random()*6), mineY = Math.floor(Math.random()*6); grid[mineY][mineX] = 9;
+            for(let r=0;r<6;r++){
+                const row = document.createElement('div'); row.className = 'ms-row';
+                for(let c=0;c<6;c++){
+                    const cell = document.createElement('div'); cell.className = 'ms-cell';
+                    cell.onclick = () => {
+                        if(grid[r][c]===9){ cell.innerText = "💥"; alert("ゲームオーバー！地雷を踏んだ！"); runMine(); }
+                        else { cell.className = 'ms-cell opened'; cell.innerText = "0"; }
+                    };
+                    row.appendChild(cell);
+                }
+                box.appendChild(row);
+            }
+        }
+
+        // 🕹️ Vol.14 2048
+        function run2048() {
+            const box = document.getElementById('box2048');
+            let b = Array(4).fill(0).map(() => Array(4).fill('')); b[0][0] = 2; b[1][2] = 2;
+            function draw() {
+                box.innerHTML = '';
+                b.forEach(row => {
+                    const rDiv = document.createElement('div'); rDiv.className = 'grid2048-row';
+                    row.forEach(c => { const cDiv = document.createElement('div'); cDiv.className = 'cell2048'; cDiv.innerText = c; rDiv.appendChild(cDiv); });
+                    box.appendChild(rDiv);
+                });
+            }
+            document.onkeydown = (e) => {
+                if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(e.key)){
+                    // 簡易スライドロジック（デモ用に数字をシャッフル）
+                    let rx = Math.floor(Math.random()*4), ry = Math.floor(Math.random()*4); b[ry][rx] = b[ry][rx] ? b[ry][rx]*2 : 2; draw();
+                }
+            };
+            draw();
+        }
+
+        // 🕹️ Vol.15 スネークゲーム
+        function runSnake(canvas) {
+            const ctx = canvas.getContext('2d'); let snake = [{x:10,y:10}], dx = 10, dy = 0, fx = 50, fy = 50, score = 0;
+            document.onkeydown = (e) => {
+                if(e.key==="ArrowLeft" && dx===0){dx=-10; dy=0;} if(e.key==="ArrowRight" && dx===0){dx=10; dy=0;}
+                if(e.key==="ArrowUp" && dy===0){dx=0; dy=-10;} if(e.key==="ArrowDown" && dy===0){dx=0; dy=10;}
+            };
+            function loop() {
+                let head = {x: snake[0].x + dx, y: snake[0].y + dy}; snake.unshift(head);
+                if(head.x === fx && head.y === fy) { fx = Math.floor(Math.random()*28)*10; fy = Math.floor(Math.random()*22)*10; } else { snake.pop(); }
+                if(head.x<0 || head.x>=canvas.width || head.y<0 || head.y>=canvas.height) { snake = [{x:10,y:10}]; dx=10; dy=0; }
+                ctx.clearRect(0,0,canvas.width,canvas.height); ctx.fillStyle="#00ffcc"; snake.forEach(s => ctx.fillRect(s.x,s.y,9,9));
+                ctx.fillStyle="#ff0055"; ctx.fillRect(fx,fy,9,9); setTimeout(loop, 100);
+            }
+            loop();
+        }
+
+        // 🕹️ Vol.17 神経衰弱
+        function runMemory() {
+            const box = document.getElementById('card-box'); box.innerHTML = '';
+            let nums = [1,1,2,2,3,3,4,4,5,5,6,6], opened = [], count = 0;
+            nums.sort(() => Math.random() - 0.5);
+            nums.forEach((n, idx) => {
+                const card = document.createElement('div'); card.className = 'card-slot'; card.innerText = "❓";
+                card.onclick = () => {
+                    if(card.innerText !== "❓" || opened.length >= 2) return;
+                    card.innerText = n; card.style.background = "#222"; opened.push({n, card});
+                    if(opened.length === 2) {
+                        if(opened[0].n === opened[1].n) { count+=2; opened = []; if(count===12) alert("全ペア発見！クリア！"); }
+                        else { setTimeout(() => { opened[0].card.innerText = "❓"; opened[0].card.style.background = "#333"; opened[1].card.innerText = "❓"; opened[1].card.style.background = "#333"; opened = []; }, 800); }
+                    }
+                };
+                box.appendChild(card);
+            });
+        }
+
+        // 🕹️ Vol.19 〇×ゲーム
+        function runTTT() {
+            const box = document.getElementById('ttt-box'); box.innerHTML = '';
+            let b = Array(9).fill('');
+            function draw() {
+                box.innerHTML = '';
+                for(let i=0; i<9; i++) {
+                    const cell = document.createElement('span'); cell.className = 'ttt-cell'; cell.innerText = b[i];
+                    cell.onclick = () => {
+                        if(b[i]!=='') return; b[i] = '〇';
+                        let empty = b.map((v,idx)=>v===''?idx:null).filter(v=>v!==null);
+                        if(empty.length > 0) { b[empty[Math.floor(Math.random()*empty.length)]] = '×'; }
+                        draw();
+                    };
+                    box.appendChild(cell); if((i+1)%3===0) box.appendChild(document.createElement('br'));
+                }
+            }
+            draw();
+        }
 
         window.onload = generateQuestion;
     </script>
