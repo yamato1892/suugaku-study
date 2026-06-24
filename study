@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>令和8年度 数学Ⅰ・高度eラーニングシステム</title>
+    <style>
+        /* 勉強画面の見た目（お堅いデザイン） */
+        body { font-family: 'MS PGothic', sans-serif; background: #f4f6f9; color: #333; margin: 0; padding: 20px; }
+        .study-container { max-width: 800px; margin: 30px auto; background: white; padding: 30px; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        h1 { font-size: 20px; color: #2c3e50; border-bottom: 2px solid #34495e; padding-bottom: 10px; margin-top: 0; }
+        .alert-box { background: #e8f4fd; border-left: 4px solid #2980b9; padding: 15px; margin: 20px 0; font-size: 14px; }
+        .question { font-weight: bold; font-size: 18px; margin: 20px 0; }
+        .formula { background: #f9f9f9; padding: 15px; font-family: monospace; border-radius: 4px; text-align: center; font-size: 18px; }
+
+        /* ゲーム画面（最初は完全に非表示） */
+        #game-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; color: #fff;
+            z-index: 99999;
+            text-align: center;
+        }
+        iframe { width: 100%; height: 95%; border: none; }
+        .footer-bar { height: 5%; background: #111; color: #666; font-size: 12px; line-height: 25px; }
+    </style>
+</head>
+<body>
+
+    <div class="study-container" id="study-page">
+        <h1>【数理科学演習】二次関数の最大・最小に関する考察</h1>
+        <div class="alert-box">
+            <strong>お知らせ：</strong> 本システムは学習履歴を記録しています。各自、データシートを参考に演習を進めてください。
+        </div>
+        <p class="question">問題：次の方程式のグラフの頂点を求めよ。</p>
+        <div class="formula">
+            y = 2x² - 4x + 5
+        </div>
+        <p style="color: #666; font-size: 14px; margin-top: 30px;">※解答を入力して「送信」を押すと、自動採点が行われます。</p>
+        <input type="text" placeholder="（例）(1, 3)" style="padding: 5px; width: 150px;">
+        <button onclick="alert('データが保存されました。')">回答を送信</button>
+    </div>
+
+    <div id="game-overlay">
+        <iframe id="game-frame" src="https://images.shonenjump.com/omake/html/mini_game/index.html"></iframe>
+        <div class="footer-bar">
+            【緊急回避】先生が来たら「Escキー」を連打しろ！瞬時にNHK高校講座に切り替わります
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 🛠️ 隠しコマンドの設定
+        // ==========================================
+        // キーボードで「open」と連続で打ち込むとゲームが起動します
+        const secretCommand = 'open'; 
+        let inputLog = '';
+
+        window.addEventListener('keydown', (e) => {
+            
+            // 🚨 【緊急回避】Escキーが押されたら、一瞬でNHK高校講座にリダイレクト（ページ移動）する
+            if (e.key === 'Escape') {
+                window.location.href = 'https://www.nhk.or.jp/kokokoza/';
+                return;
+            }
+
+            // 入力されたキーを記録
+            inputLog += e.key.toLowerCase();
+
+            // コマンドの文字数を超えたら、古い入力を削る
+            if (inputLog.length > secretCommand.length) {
+                inputLog = inputLog.substring(inputLog.length - secretCommand.length);
+            }
+
+            // コマンドが一致したらゲーム画面をドカンと表示
+            if (inputLog === secretCommand) {
+                document.getElementById('study-page').style.display = 'none';
+                document.getElementById('game-overlay').style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
